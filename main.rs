@@ -15,46 +15,14 @@ impl fmt::Display for InvalidInstruction {
 
 impl Error for InvalidInstruction {}
 
-#[derive(Debug)]
-pub struct OutsideStartOfMemory;
 
-impl fmt::Display for OutsideStartOfMemory {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Pointer moved outside of start of memory.")
-    }
-}
-
-impl Error for OutsideStartOfMemory {}
-
-
-#[derive(Debug)]
-pub struct OutsideEndOfMemory;
-
-impl fmt::Display for OutsideEndOfMemory {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Pointer moved outside of end of memory.")
-    }
-}
-
-impl Error for OutsideEndOfMemory {}
-
-
-fn instruction_interpreter(instruction: &str) {
-    let mut memory: Vec<u32> = Vec::new();
-    let mut pointer: u32 = 0;
+fn instruction_interpreter(instruction: &str, memory: &mut Vec<u8>, pointer: &mut usize) {
     if instruction == "moo" {
         moo_temp();
     } else if instruction == "mOo" {
-        match move_pointer_back_one(&pointer) {
-            Ok(p) => pointer = p,
-            Err(e) => panic!("{}", e),
-        }
+        move_pointer_back_one(pointer);
     } else if instruction == "moO" {
-        let memory_length = memory.len();
-        match move_pointer_forward_one(&pointer, memory_length) {
-            Ok(p) => pointer = p,
-            Err(e) => panic!("{}", e),
-        }
+        move_pointer_forward_one(pointer);
     } else if instruction == "mOO" {
         moo_temp();
     } else if instruction == "Moo" {
@@ -62,7 +30,7 @@ fn instruction_interpreter(instruction: &str) {
     } else if instruction == "MOo" {
         moo_temp();
     } else if instruction == "MoO" {
-        increment_current_memory_address(&memory.as_slice(), &pointer)
+        increment_current_memory_address(memory, pointer);
     } else if instruction == "oom" {
         moo_temp();
     } else if instruction == "MOO" {
@@ -82,25 +50,33 @@ fn moo_temp() -> u32 {
     1u32
 }
 
-fn move_pointer_back_one(pointer: &u32) -> Result<u32, OutsideStartOfMemory> {
+fn move_pointer_back_one(pointer: &mut usize){
     match pointer {
-        0 => Err(OutsideStartOfMemory),
-        _ => Ok(pointer - 1),
-    }
+        0 => &mut 0,
+        _ => &mut (*pointer - 1usize),
+    };
 }
 
-fn move_pointer_forward_one(&pointer: &u32, length: usize) -> Result<u32, OutsideEndOfMemory> {
-    match pointer {
-        length => Err(OutsideEndOfMemory),
-        _ => Ok(pointer + 1) 
-    }
+fn move_pointer_forward_one(pointer: &mut usize) {
+    &mut (*pointer + 1);
 }
 
-fn increment_current_memory_address(&memory: &[u32], &pointer: &u32) -> u32 {
-    1u32
+fn increment_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
+    if let Some(mem) = memory.get_mut(*pointer) {
+        if mem == &255u8 {
+            *mem = 0;
+        } else {
+            *mem += 1;
+        }
+    } else {
+        panic!("Incrementing Memory Error")
+    }
+    
 }
 
 fn main() {
+    let mut memory: Vec<u8> = vec!(0);
+    let mut pointer: usize = 0;
     let valid_instructions = ["moo", "mOo", "moO", "mOO", "Moo", "MOo", "MoO", "MOO", "OOO", "MMM",
      "OOM", "oom"];
     let filename = match parse_arg() {
@@ -121,7 +97,8 @@ fn main() {
     instructions.reverse();
     while let Some(instruction) = instructions.pop() {
         if valid_instructions.contains(&instruction){
-            instruction_interpreter(instruction);
+            instruction_interpreter(instruction, &mut memory, &mut pointer);
+            println!("{:?}", memory);
         } else {
             panic!("Invalid instruction: {}.", instruction);
         }
