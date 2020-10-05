@@ -42,10 +42,42 @@ fn instruction_interpreter(instruction: &str, memory: &mut Vec<u8>, pointer: &mu
         moo_temp();
     } else if instruction == "OOM" {
         println!("{}", get_current_memory_as_integer(memory.to_vec(), *pointer));
+    } else if instruction == "oom" {
+        let integer: u8 = read_integer_from_stdin();
+        set_memory_value_from_integer(integer, memory, pointer);
     } else {
         panic!("Invalid instruction --> {}", instruction);
     }    
 }
+
+
+fn read_integer_from_stdin() -> u8 {
+    loop {
+        let mut buffer = String::new();
+        let input = match io::stdin().read_line(&mut buffer) {
+            Ok(_) => buffer,
+            Err(e) => panic!("Error reading from stdin: {}", e),
+        };
+        let integer = match input.parse::<u8>() {
+            Ok(i) => i,
+            Err(_) => {
+                println!("Invalid integer, try again,");
+                continue
+            }
+        };
+        return integer;
+    }
+}
+
+
+fn set_memory_value_from_integer(integer:u8, memory: &mut Vec<u8>, pointer: &mut usize) {
+    if let Some(mem) = memory.get_mut(*pointer) {
+        *mem = integer
+    } else {
+        panic!("Couldn't write input integer to memory.")
+    }
+}
+
 
 fn get_single_character_from_stdin() -> String {
     loop {
@@ -65,6 +97,7 @@ fn get_single_character_from_stdin() -> String {
         }
     }
 }
+
 
 fn string_to_ascii_value(input: String) -> u8 {
     if input.is_ascii() {
@@ -88,6 +121,7 @@ fn input_or_read_ascii_value(memory: &mut Vec<u8>, pointer: &mut usize) {
     }
 }
 
+
 fn set_current_memory_to_zero(memory: &mut Vec<u8>, pointer: &mut usize) {
     if let Some(mem) = memory.get_mut(*pointer) {
         *mem = 0;
@@ -95,6 +129,7 @@ fn set_current_memory_to_zero(memory: &mut Vec<u8>, pointer: &mut usize) {
         panic!("Could not set current memory address to zero.");
     }
 }
+
 
 fn get_current_memory_as_integer(memory: Vec<u8>, pointer: usize) -> String{
     if let Some(mem) = memory.get(pointer) {
@@ -104,9 +139,11 @@ fn get_current_memory_as_integer(memory: Vec<u8>, pointer: usize) -> String{
     }
 }
 
+
 fn moo_temp() -> u32 {
     1u32
 }
+
 
 fn move_pointer_back_one(pointer: &mut usize){
     match pointer {
@@ -115,9 +152,11 @@ fn move_pointer_back_one(pointer: &mut usize){
     };
 }
 
+
 fn move_pointer_forward_one(pointer: &mut usize) {
     *pointer += 1;
 }
+
 
 fn increment_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
     if let Some(mem) = memory.get_mut(*pointer) {
@@ -131,6 +170,7 @@ fn increment_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
     }
 }
 
+
 fn decrement_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
     if let Some(mem) = memory.get_mut(*pointer) {
         if mem == &0u8 {
@@ -140,6 +180,7 @@ fn decrement_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
         }
     }
 }
+
 
 pub fn main() {
     let mut memory: Vec<u8> = vec!(0);
@@ -237,5 +278,13 @@ mod tests {
         let ascii_a_value = 103;
         let string_to_ascii = string_to_ascii_value(a_string);
         assert_eq!(string_to_ascii, ascii_a_value);
+    }
+
+    #[test]
+    fn test_set_memory_value_from_integer() {
+        let mut pointer: usize = 0;
+        let mut memory: Vec<u8> = vec!(0);
+        set_memory_value_from_integer(4, &mut memory, &mut pointer);
+        assert_eq!(memory, vec!(4));
     }
 }
