@@ -23,7 +23,7 @@ fn instruction_interpreter(instruction: &str, memory: &mut Vec<u8>, pointer: &mu
     } else if instruction == "mOo" {
         move_pointer_back_one(pointer);
     } else if instruction == "moO" {
-        move_pointer_forward_one(pointer);
+        move_pointer_forward_one(memory, pointer);
     } else if instruction == "mOO" {
         moo_temp();
     } else if instruction == "Moo" {
@@ -89,7 +89,7 @@ fn get_single_character_from_stdin() -> String {
         if input.len() > 2 {
             println!("You can only enter a single character.");
             continue
-        } else if input.len() == 1 || input.len() == 0 {
+        } else if input.len() <= 1 {
             println!("You need to enter a character.");
             continue
         } else {
@@ -153,7 +153,10 @@ fn move_pointer_back_one(pointer: &mut usize){
 }
 
 
-fn move_pointer_forward_one(pointer: &mut usize) {
+fn move_pointer_forward_one(memory: &mut Vec<u8>, pointer: &mut usize) {
+    if *pointer == memory.len() {
+        memory.push(0)
+    }
     *pointer += 1;
 }
 
@@ -227,7 +230,8 @@ mod tests {
     #[test]
     fn test_move_pointer_forward_one() {
         let mut pointer: usize = 0;
-        move_pointer_forward_one(&mut pointer);
+        let mut memory: Vec<u8> = vec!(0);
+        move_pointer_forward_one(&mut memory, &mut pointer);
         assert_eq!(1usize, pointer);
     }
 
