@@ -108,8 +108,13 @@ fn string_to_ascii_value(input: String) -> u8 {
     }
 }
 
-fn get_utf8_from_integer(n: u8) -> String {
-    String::from_utf8(vec!(n)).unwrap()
+fn get_utf8_from_integer(n: &mut u8) -> String {
+    // If the byte value is > 127, it needs to be subtracted by 128 to be in
+    // valid ascii range
+    if *n > 127u8 {
+        *n -= 128;
+    }
+    String::from_utf8(vec!(*n)).unwrap()
 }
 
 
@@ -120,9 +125,8 @@ fn input_or_read_ascii_value(memory: &mut Vec<u8>, pointer: &mut usize) {
             let ascii_value = string_to_ascii_value(input);
             *mem = ascii_value
         } else {
-            let ascii_value = get_utf8_from_integer(*mem);
-            println!("{}", *mem);
-            println!("{}", ascii_value); 
+            let ascii_value = get_utf8_from_integer(mem);
+            print!("{}", ascii_value); 
         }
     }
 }
