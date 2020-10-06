@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::fmt;
 use std::error::Error;
-use std::io::{self};
+use std::io;
 
 
 #[derive(Debug)]
@@ -102,10 +102,14 @@ fn get_single_character_from_stdin() -> String {
 fn string_to_ascii_value(input: String) -> u8 {
     if input.is_ascii() {
         let bytes = input.as_bytes();
-        return bytes.first().unwrap().clone()
+        return *bytes.first().unwrap()
     } else {
         panic!("bytes conversion broke")
     }
+}
+
+fn get_utf8_from_integer(n: u8) -> String {
+    String::from_utf8(vec!(n)).unwrap()
 }
 
 
@@ -116,7 +120,9 @@ fn input_or_read_ascii_value(memory: &mut Vec<u8>, pointer: &mut usize) {
             let ascii_value = string_to_ascii_value(input);
             *mem = ascii_value
         } else {
-            println!("{}", mem);
+            let ascii_value = get_utf8_from_integer(*mem);
+            println!("{}", *mem);
+            println!("{}", ascii_value); 
         }
     }
 }
@@ -154,7 +160,7 @@ fn move_pointer_back_one(pointer: &mut usize){
 
 
 fn move_pointer_forward_one(memory: &mut Vec<u8>, pointer: &mut usize) {
-    if *pointer == memory.len() {
+    if *pointer == memory.len()-1 {
         memory.push(0)
     }
     *pointer += 1;
@@ -188,8 +194,6 @@ fn decrement_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
 pub fn main() {
     let mut memory: Vec<u8> = vec!(0);
     let mut pointer: usize = 0;
-    let valid_instructions = ["moo", "mOo", "moO", "mOO", "Moo", "MOo", "MoO", "MOO", "OOO", "MMM",
-     "OOM", "oom"];
     let filename = match parse_arg() {
         Some(f) => f,
         None => {
@@ -207,11 +211,7 @@ pub fn main() {
     let mut instructions: Vec<&str> = file.split_whitespace().collect();
     instructions.reverse();
     while let Some(instruction) = instructions.pop() {
-        if valid_instructions.contains(&instruction){
-            instruction_interpreter(instruction, &mut memory, &mut pointer);
-        } else {
-            panic!("Invalid instruction: {}.", instruction);
-        }
+        instruction_interpreter(instruction, &mut memory, &mut pointer);
     }
 }
 
@@ -233,6 +233,7 @@ mod tests {
         let mut memory: Vec<u8> = vec!(0);
         move_pointer_forward_one(&mut memory, &mut pointer);
         assert_eq!(1usize, pointer);
+        assert_eq!(vec!(0, 0), memory);
     }
 
     #[test]
@@ -290,5 +291,11 @@ mod tests {
         let mut memory: Vec<u8> = vec!(0);
         set_memory_value_from_integer(4, &mut memory, &mut pointer);
         assert_eq!(memory, vec!(4));
+    }
+
+    #[test]
+    fn test_read_ascii_value() {
+        let test = get_utf8_from_integer(103);
+        assert_eq!("g".to_owned(), test)
     }
 }
