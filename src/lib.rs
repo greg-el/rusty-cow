@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_read_ascii_value() {
-        let test = get_utf8_from_integer(103);
+        let test = get_utf8_from_integer(&mut 103);
         assert_eq!("g".to_owned(), test)
     }
 }
