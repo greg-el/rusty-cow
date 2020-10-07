@@ -51,6 +51,11 @@ fn instruction_interpreter(instruction: &str, memory: &mut Vec<u8>, pointer: &mu
 }
 
 
+fn moo_temp() -> u32 {
+    1u32
+}
+
+
 fn read_integer_from_stdin() -> u8 {
     loop {
         let mut buffer = String::new();
@@ -108,6 +113,7 @@ fn string_to_ascii_value(input: String) -> u8 {
     }
 }
 
+
 fn get_utf8_from_integer(n: &mut u8) -> String {
     // If the byte value is > 127, it needs to be subtracted by 128 to be in
     // valid ascii range
@@ -147,11 +153,6 @@ fn get_current_memory_as_integer(memory: Vec<u8>, pointer: usize) -> String{
     } else {
         panic!("An error occured whilst printing the current memory address.")
     }
-}
-
-
-fn moo_temp() -> u32 {
-    1u32
 }
 
 
@@ -195,6 +196,17 @@ fn decrement_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
 }
 
 
+fn parse_arg() -> Option<String> {
+    Some(env::args().nth(1).expect("Error: No filename entered."))
+
+}
+
+
+fn read_file(filename: &str) -> Result<String, std::io::Error> {
+    fs::read_to_string(filename)
+}
+
+
 pub fn main() {
     let mut memory: Vec<u8> = vec!(0);
     let mut pointer: usize = 0;
@@ -219,14 +231,6 @@ pub fn main() {
     }
 }
 
-fn parse_arg() -> Option<String> {
-    Some(env::args().nth(1).expect("Error: No filename entered."))
-
-}
-
-fn read_file(filename: &str) -> Result<String, std::io::Error> {
-    fs::read_to_string(filename)
-}
 
 #[cfg(test)]
 mod tests {
