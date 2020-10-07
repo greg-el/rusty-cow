@@ -16,38 +16,168 @@ impl fmt::Display for InvalidInstruction {
 
 impl Error for InvalidInstruction {}
 
+#[derive(Debug)]
+enum IncrementMode {
+    Forward,
+    Backward,
+}
 
-fn instruction_interpreter(instruction: &str, memory: &mut Vec<u8>, pointer: &mut usize) {
-    if instruction == "moo" {
-        moo_temp();
-    } else if instruction == "mOo" {
-        move_pointer_back_one(pointer);
-    } else if instruction == "moO" {
-        move_pointer_forward_one(memory, pointer);
-    } else if instruction == "mOO" {
-        moo_temp();
-    } else if instruction == "Moo" {
-        input_or_read_ascii_value(memory, pointer);
-    } else if instruction == "MOo" {
-        decrement_current_memory_address(memory, pointer);
-    } else if instruction == "MoO" {
-        increment_current_memory_address(memory, pointer);
-    } else if instruction == "oom" {
-        moo_temp();
-    } else if instruction == "MOO" {
-        moo_temp();
-    } else if instruction == "OOO" {
-        set_current_memory_to_zero(memory, pointer);
-    } else if instruction == "MMM" {
-        moo_temp();
-    } else if instruction == "OOM" {
-        println!("{}", get_current_memory_as_integer(memory.to_vec(), *pointer));
-    } else if instruction == "oom" {
-        let integer: u8 = read_integer_from_stdin();
-        set_memory_value_from_integer(integer, memory, pointer);
-    } else {
-        panic!("Invalid instruction --> {}", instruction);
-    }    
+
+pub struct CowIncrementer {
+    mode: IncrementMode,
+}
+
+impl CowIncrementer {
+    fn next(&mut self, i: &mut usize) {
+        match self.mode {
+            IncrementMode::Forward => *i += 1,
+            IncrementMode::Backward => *i -= 1,
+        }
+    }
+}
+
+
+pub struct InstructionInterpreter {
+    memory: Vec<u8>,
+    pointer: usize,
+    incrementer: CowIncrementer,
+    instructions: Vec<String>,
+    i: usize,
+    execute_instructions: bool,
+}
+
+impl InstructionInterpreter {
+    fn cow(&mut self) {
+        while self.i < self.instructions.len() {
+            self.instruction_interpreter();
+            self.incrementer.next(&mut self.i);
+        }
+    }
+
+    fn instruction_interpreter(&mut self) {
+        let instruction = &self.instructions[self.i];
+        println!("{}", instruction);
+        if self.execute_instructions == false {
+            if instruction == "MOO" {
+                self.execute_instructions = true;
+                self.incrementer.mode = IncrementMode::Forward;
+            } else {
+               return
+            }
+        } else {
+            if instruction == "moo" {
+                // When finding a 'moo' you then search in reverse for a 'MOO', skipping
+                // the instruction that is immediately before it
+                self.i -= 1;
+                self.incrementer.mode = IncrementMode::Backward;
+                self.execute_instructions = false;
+            } else if instruction == "mOo" {
+                self.move_pointer_back_one();
+            } else if instruction == "moO" {
+                self.move_pointer_forward_one();
+            } else if instruction == "mOO" {
+                moo_temp();
+            } else if instruction == "Moo" {
+                self.input_or_read_ascii_value();
+            } else if instruction == "MOo" {
+                self.decrement_current_memory_address();
+            } else if instruction == "MoO" {
+                self.increment_current_memory_address();
+            } else if instruction == "oom" {
+                moo_temp();
+            } else if instruction == "MOO" {
+                moo_temp();
+            } else if instruction == "OOO" {
+                self.set_current_memory_to_zero();
+            } else if instruction == "MMM" {
+                moo_temp();
+            } else if instruction == "OOM" {
+                println!("{}", self.get_current_memory_as_integer());
+            } else if instruction == "oom" {
+                let integer: u8 = read_integer_from_stdin();
+                self.set_memory_value_from_integer(integer);
+            } else {
+                panic!("Invalid instruction --> {}", instruction);
+            }
+        }
+    }
+
+    fn set_current_memory_to_zero(&mut self) {
+        if let Some(mem) = self.memory.get_mut(self.pointer) {
+            *mem = 0;
+        } else {
+            panic!("Could not set current memory address to zero.");
+        }
+    }
+    
+    
+    fn get_current_memory_as_integer(&mut self) -> String {
+        if let Some(mem) = self.memory.get(self.pointer) {
+            format!("{}", mem)
+        } else {
+            panic!("An error occured whilst printing the current memory address.")
+        }
+    }
+
+    fn move_pointer_forward_one(&mut self) {
+        if self.pointer == self.memory.len()-1 {
+            self.memory.push(0)
+        }
+        self.pointer += 1;
+    }
+
+    fn move_pointer_back_one(&mut self){
+        match self.pointer {
+            0 => self.pointer = 0,
+            _ => self.pointer -= 1,
+        };
+    }
+    
+    
+    fn increment_current_memory_address(&mut self) {
+        if let Some(mem) = self.memory.get_mut(self.pointer) {
+            if mem == &255u8 {
+                *mem = 0;
+            } else {
+                *mem += 1;
+            }
+        } else {
+            panic!("Incrementing Memory Error")
+        }
+    }
+    
+    
+    fn decrement_current_memory_address(&mut self) {
+        if let Some(mem) = self.memory.get_mut(self.pointer) {
+            if mem == &0u8 {
+                *mem = 255
+            } else {
+                *mem -= 1
+            }
+        }
+    }
+
+
+    fn set_memory_value_from_integer(&mut self, integer:u8) {
+        if let Some(mem) = self.memory.get_mut(self.pointer) {
+            *mem = integer
+        } else {
+            panic!("Couldn't write input integer to memory.")
+        }
+    }
+
+    fn input_or_read_ascii_value(&mut self) {
+        if let Some(mem) = self.memory.get_mut(self.pointer) {
+            if mem == &0u8 {
+                let input = get_single_character_from_stdin();
+                let ascii_value = string_to_ascii_value(input);
+                *mem = ascii_value
+            } else {
+                let ascii_value = get_utf8_from_integer(mem);
+                println!("{}", ascii_value); 
+            }
+        }
+    }
 }
 
 
@@ -71,15 +201,6 @@ fn read_integer_from_stdin() -> u8 {
             }
         };
         return integer;
-    }
-}
-
-
-fn set_memory_value_from_integer(integer:u8, memory: &mut Vec<u8>, pointer: &mut usize) {
-    if let Some(mem) = memory.get_mut(*pointer) {
-        *mem = integer
-    } else {
-        panic!("Couldn't write input integer to memory.")
     }
 }
 
@@ -124,78 +245,6 @@ fn get_utf8_from_integer(n: &mut u8) -> String {
 }
 
 
-fn input_or_read_ascii_value(memory: &mut Vec<u8>, pointer: &mut usize) {
-    if let Some(mem) = memory.get_mut(*pointer) {
-        if mem == &0u8 {
-            let input = get_single_character_from_stdin();
-            let ascii_value = string_to_ascii_value(input);
-            *mem = ascii_value
-        } else {
-            let ascii_value = get_utf8_from_integer(mem);
-            print!("{}", ascii_value); 
-        }
-    }
-}
-
-
-fn set_current_memory_to_zero(memory: &mut Vec<u8>, pointer: &mut usize) {
-    if let Some(mem) = memory.get_mut(*pointer) {
-        *mem = 0;
-    } else {
-        panic!("Could not set current memory address to zero.");
-    }
-}
-
-
-fn get_current_memory_as_integer(memory: Vec<u8>, pointer: usize) -> String{
-    if let Some(mem) = memory.get(pointer) {
-        format!("{}", mem)
-    } else {
-        panic!("An error occured whilst printing the current memory address.")
-    }
-}
-
-
-fn move_pointer_back_one(pointer: &mut usize){
-    match pointer {
-        0 => *pointer = 0,
-        _ => *pointer -= 1,
-    };
-}
-
-
-fn move_pointer_forward_one(memory: &mut Vec<u8>, pointer: &mut usize) {
-    if *pointer == memory.len()-1 {
-        memory.push(0)
-    }
-    *pointer += 1;
-}
-
-
-fn increment_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
-    if let Some(mem) = memory.get_mut(*pointer) {
-        if mem == &255u8 {
-            *mem = 0;
-        } else {
-            *mem += 1;
-        }
-    } else {
-        panic!("Incrementing Memory Error")
-    }
-}
-
-
-fn decrement_current_memory_address(memory: &mut Vec<u8>, pointer: &mut usize) {
-    if let Some(mem) = memory.get_mut(*pointer) {
-        if mem == &0u8 {
-            *mem = 255
-        } else {
-            *mem -= 1
-        }
-    }
-}
-
-
 fn parse_arg() -> Option<String> {
     Some(env::args().nth(1).expect("Error: No filename entered."))
 
@@ -208,8 +257,6 @@ fn read_file(filename: &str) -> Result<String, std::io::Error> {
 
 
 pub fn main() {
-    let mut memory: Vec<u8> = vec!(0);
-    let mut pointer: usize = 0;
     let filename = match parse_arg() {
         Some(f) => f,
         None => {
@@ -224,11 +271,16 @@ pub fn main() {
             std::process::exit(1);
         }
     };
-    let mut instructions: Vec<&str> = file.split_whitespace().collect();
-    instructions.reverse();
-    while let Some(instruction) = instructions.pop() {
-        instruction_interpreter(instruction, &mut memory, &mut pointer);
-    }
+    let instructions: Vec<String> = file.split_whitespace().map(|s| s.to_owned()).collect();
+    let mut cow = InstructionInterpreter{
+        memory: vec!(0),
+        pointer: 0usize,
+        incrementer: CowIncrementer{mode: IncrementMode::Forward},
+        instructions: instructions,
+        i: 0,
+        execute_instructions: true,
+    };
+    cow.cow();
 }
 
 
@@ -237,50 +289,87 @@ mod tests {
     use super::*;
     #[test]
     fn test_move_pointer_forward_one() {
-        let mut pointer: usize = 0;
-        let mut memory: Vec<u8> = vec!(0);
-        move_pointer_forward_one(&mut memory, &mut pointer);
-        assert_eq!(1usize, pointer);
-        assert_eq!(vec!(0, 0), memory);
+        let mut cow = InstructionInterpreter{
+            memory: vec!(0),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
+        cow.move_pointer_forward_one();
+        assert_eq!(1usize, cow.pointer);
+        assert_eq!(vec!(0, 0), cow.memory);
     }
 
     #[test]
     fn test_move_pointer_back_one() {
-        let mut pointer: usize = 1;
-        move_pointer_back_one(&mut pointer);
-        assert_eq!(0usize, pointer);
+        let mut cow = InstructionInterpreter{
+            memory: vec!(0),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
+        cow.move_pointer_back_one();
+        assert_eq!(0usize, cow.pointer);
     }
 
     #[test]
     fn test_increment_current_memory_address() {
-        let mut pointer: usize = 0;
-        let mut memory: Vec<u8> = vec!(0);
-        increment_current_memory_address(&mut memory, &mut pointer);
-        assert_eq!(memory, vec!(1));
+        let mut cow = InstructionInterpreter{
+            memory: vec!(0),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
+        cow.increment_current_memory_address();
+        assert_eq!(cow.memory, vec!(1));
     }
 
     #[test]
     fn test_decrement_current_memory_address() {
-        let mut pointer: usize = 0;
-        let mut memory: Vec<u8> = vec!(1);
-        decrement_current_memory_address(&mut memory, &mut pointer);
-        assert_eq!(memory, vec!(0));
+        let mut cow = InstructionInterpreter{
+            memory: vec!(1),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
+        cow.decrement_current_memory_address();
+        assert_eq!(cow.memory, vec!(0));
     }
 
     #[test]
     fn test_set_current_memory_address_to_zero() {
-        let mut pointer: usize = 0;
-        let mut memory: Vec<u8> = vec!(1);
-        set_current_memory_to_zero(&mut memory, &mut pointer);
-        assert_eq!(memory, vec!(0));
+        let mut cow = InstructionInterpreter{
+            memory: vec!(1),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
+        cow.set_current_memory_to_zero();
+        assert_eq!(cow.memory, vec!(0));
     }
 
     #[test]
     fn test_print_current_memory_address_as_integer() {
-        let pointer: usize = 0;
-        let memory: Vec<u8> = vec!(3);
+        let mut cow = InstructionInterpreter{
+            memory: vec!(3),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
         assert_eq!(
-            get_current_memory_as_integer(memory, pointer),
+            cow.get_current_memory_as_integer(),
             "3".to_owned()
         );
     }
@@ -295,10 +384,16 @@ mod tests {
 
     #[test]
     fn test_set_memory_value_from_integer() {
-        let mut pointer: usize = 0;
-        let mut memory: Vec<u8> = vec!(0);
-        set_memory_value_from_integer(4, &mut memory, &mut pointer);
-        assert_eq!(memory, vec!(4));
+        let mut cow = InstructionInterpreter{
+            memory: vec!(0),
+            pointer: 0usize,
+            incrementer: CowIncrementer{mode: IncrementMode::Forward},
+            instructions: vec!("test".to_owned()),
+            i: 0,
+            execute_instructions: true,
+        };
+        cow.set_memory_value_from_integer(4);
+        assert_eq!(cow.memory, vec!(4));
     }
 
     #[test]
