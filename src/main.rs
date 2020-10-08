@@ -16,12 +16,12 @@ impl fmt::Display for InvalidInstruction {
 
 impl Error for InvalidInstruction {}
 
+
 #[derive(Debug)]
 enum IncrementMode {
     Forward,
     Backward,
 }
-
 
 pub struct CowIncrementer {
     mode: IncrementMode,
@@ -55,51 +55,52 @@ impl InstructionInterpreter {
     }
 
     fn instruction_interpreter(&mut self) {
+
         let instruction = &self.instructions[self.i];
-        println!("{}", instruction);
         if self.execute_instructions == false {
             if instruction == "MOO" {
-                self.execute_instructions = true;
                 self.incrementer.mode = IncrementMode::Forward;
+                self.execute_instructions = true;
             } else {
-               return
-            }
-        } else {
-            if instruction == "moo" {
-                // When finding a 'moo' you then search in reverse for a 'MOO', skipping
-                // the instruction that is immediately before it
-                self.i -= 1;
-                self.incrementer.mode = IncrementMode::Backward;
-                self.execute_instructions = false;
-            } else if instruction == "mOo" {
-                self.move_pointer_back_one();
-            } else if instruction == "moO" {
-                self.move_pointer_forward_one();
-            } else if instruction == "mOO" {
-                moo_temp();
-            } else if instruction == "Moo" {
-                self.input_or_read_ascii_value();
-            } else if instruction == "MOo" {
-                self.decrement_current_memory_address();
-            } else if instruction == "MoO" {
-                self.increment_current_memory_address();
-            } else if instruction == "oom" {
-                moo_temp();
-            } else if instruction == "MOO" {
-                moo_temp();
-            } else if instruction == "OOO" {
-                self.set_current_memory_to_zero();
-            } else if instruction == "MMM" {
-                moo_temp();
-            } else if instruction == "OOM" {
-                println!("{}", self.get_current_memory_as_integer());
-            } else if instruction == "oom" {
-                let integer: u8 = read_integer_from_stdin();
-                self.set_memory_value_from_integer(integer);
-            } else {
-                panic!("Invalid instruction --> {}", instruction);
+                return
             }
         }
+
+        if instruction == "moo" {
+            // When finding a 'moo' you then search in reverse for a 'MOO', skipping
+            // the instruction that is immediately before it
+            self.i -= 1;
+            self.incrementer.mode = IncrementMode::Backward;
+            self.execute_instructions = false;
+        } else if instruction == "mOo" {
+            self.move_pointer_back_one();
+        } else if instruction == "moO" {
+            self.move_pointer_forward_one();
+        } else if instruction == "mOO" {
+            moo_temp();
+        } else if instruction == "Moo" {
+            self.input_or_read_ascii_value();
+        } else if instruction == "MOo" {
+            self.decrement_current_memory_address();
+        } else if instruction == "MoO" {
+            self.increment_current_memory_address();
+        } else if instruction == "oom" {
+            moo_temp();
+        } else if instruction == "MOO" {
+            moo_temp();
+        } else if instruction == "OOO" {
+            self.set_current_memory_to_zero();
+        } else if instruction == "MMM" {
+            moo_temp();
+        } else if instruction == "OOM" {
+            println!("{}", self.get_current_memory_as_integer());
+        } else if instruction == "oom" {
+            let integer: u8 = read_integer_from_stdin();
+            self.set_memory_value_from_integer(integer);
+        } else {
+            panic!("Invalid instruction --> {}", instruction);
+        }
+        
     }
 
     fn set_current_memory_to_zero(&mut self) {
